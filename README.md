@@ -1,8 +1,7 @@
 ![Parse Banner](./assets/banner.png)
 
-## Parse is a simple Raycast extension that lets you read at the speed of thought (almost)
+## Parse is a simple Raycast extension that lets you read any selected at the speed of thought (almost)
 
----
 
 ## Features
 
@@ -19,7 +18,7 @@
 2. Open Parse from Raycast
 3. Text automatically starts playing at your preferred speed
 4. Press `Space` to pause/play
-5. Adjust WPM using the ⌘P dropdown
+5. Adjust WPM using the `⌘P` dropdown
 
 ## Keyboard Shortcuts
 
@@ -27,3 +26,8 @@
 - `⌘ + P` - Change WPM
 - `⌘ + C` - Copy text
 - `⌘ + D` - Delete item
+
+## Notes
+
+- Based on [this tweet from Oliur](https://x.com/UltraLinx/status/2011434505253650868) 
+- Ping [@traf](https://x.com/traf) with any issues/ideas/feedback
