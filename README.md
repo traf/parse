@@ -1,6 +1,8 @@
 ![Parse Banner](./assets/banner.png)
 
-### Parse is a simple Raycast extension that lets you read at the speed of thought (almost)
+## Parse is a simple Raycast extension that lets you read at the speed of thought (almost)
+
+---
 
 ## Features
 
