@@ -10,6 +10,7 @@ import {
   Icon,
   Color,
   LocalStorage,
+  environment,
 } from "@raycast/api";
 
 interface Preferences {
@@ -171,6 +172,8 @@ export default function Command() {
   const getOrpIndex = (word: string) => Math.floor(word.length / 2);
 
   const createWordSvg = (word: string, orpIdx: number) => {
+    const isDark = environment.appearance === "dark";
+
     const fontSize = 56;
     const charWidth = 34;
     const fixedWidth = 600;
@@ -180,6 +183,10 @@ export default function Command() {
     const orpOffset = orpIdx * charWidth + charWidth / 2;
     const startX = centerX - orpOffset;
 
+    // Use theme-appropriate colors for better contrast
+    const textColor = isDark ? "#e5e5e5" : "#1a1a1a";
+    const barBgColor = isDark ? "#333" : "#a3a3a3";
+
     const chars = word
       .split("")
       .map((char, i) => {
@@ -187,7 +194,7 @@ export default function Command() {
           .replace(/&/g, "&amp;")
           .replace(/</g, "&lt;")
           .replace(/>/g, "&gt;");
-        const fill = i === orpIdx ? "#ef4444" : "#e5e5e5";
+        const fill = i === orpIdx ? "#ef4444" : textColor;
         const x = startX + i * charWidth;
         return `<text x="${x}" y="${centerY}" fill="${fill}" font-size="${fontSize}" font-weight="500" font-family="SF Mono, Menlo, Monaco, monospace" dominant-baseline="central">${escaped}</text>`;
       })
@@ -200,7 +207,7 @@ export default function Command() {
     const barX = (fixedWidth - barWidth) / 2;
     const barY = svgHeight - 40;
     const filledWidth = Math.round((barWidth * progress) / 100);
-    const progressBar = `<rect x="${barX}" y="${barY}" width="${barWidth}" height="${barHeight}" fill="#333" rx="1"/><rect x="${barX}" y="${barY}" width="${filledWidth}" height="${barHeight}" fill="#ef4444" rx="1"/>`;
+    const progressBar = `<rect x="${barX}" y="${barY}" width="${barWidth}" height="${barHeight}" fill="${barBgColor}" rx="1"/><rect x="${barX}" y="${barY}" width="${filledWidth}" height="${barHeight}" fill="#ef4444" rx="1"/>`;
 
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${fixedWidth}" height="${svgHeight}" viewBox="0 0 ${fixedWidth} ${svgHeight}">${chars}${progressBar}</svg>`;
     return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
