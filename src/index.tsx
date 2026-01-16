@@ -233,8 +233,8 @@ export default function Command() {
     >
       {clipboardHistory.length === 0 ? (
         <List.EmptyView
-          title="Nothing to Parse."
-          description="Copy some text first, then open Parse"
+          title="Nothing to Parse"
+          description="Copy some text first, then open Parse."
         />
       ) : (
         clipboardHistory.map((item) => (
@@ -266,7 +266,7 @@ export default function Command() {
                   title="Delete"
                   icon={{ source: Icon.Trash, tintColor: Color.Red }}
                   style={Action.Style.Destructive}
-                  shortcut={{ modifiers: ["cmd"], key: "backspace" }}
+                  shortcut={{ modifiers: ["cmd"], key: "d" }}
                   onAction={async () => {
                     const deletedJson =
                       await LocalStorage.getItem<string>("deletedTexts");
@@ -296,6 +296,20 @@ export default function Command() {
                     });
                   }}
                 />
+                <ActionPanel.Section>
+                  <Action.OpenInBrowser
+                    title="View on GitHub"
+                    url="https://github.com/traf/parse"
+                    icon={Icon.ArrowNe}
+                    shortcut={{ modifiers: ["cmd"], key: "g" }}
+                  />
+                  <Action.OpenInBrowser
+                    title="Follow @traf"
+                    url="https://x.com/traf"
+                    icon={Icon.ArrowNe}
+                    shortcut={{ modifiers: ["cmd"], key: "x" }}
+                  />
+                </ActionPanel.Section>
               </ActionPanel>
             }
           />
