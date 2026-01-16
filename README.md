@@ -1,10 +1,6 @@
-# Parse
+![Parse Banner](./assets/banner.png)
 
-![Parse Icon](./assets/extension-icon.png)
-
-Read at the speed of thought.
-
-A Raycast extension for speed reading your clipboard text using RSVP (Rapid Serial Visual Presentation).
+### Parse is a simple Raycast extension that lets you read at the speed of thought (almost)
 
 ## Features
 
