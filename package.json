@@ -4,10 +4,12 @@
   "description": "Speed read copied text one word at a time.",
   "icon": "extension-icon.png",
   "author": "traf",
-  "categories": ["Productivity"],
+  "categories": [
+    "Productivity"
+  ],
   "license": "MIT",
   "commands": [
-    { 
+    {
       "name": "index",
       "title": "Parse Text",
       "description": "Speed read copied text one word at a time.",
@@ -21,11 +23,26 @@
           "required": false,
           "default": "400",
           "data": [
-            { "title": "300 WPM", "value": "300" },
-            { "title": "400 WPM (Default)", "value": "400" },
-            { "title": "500 WPM", "value": "500" },
-            { "title": "600 WPM", "value": "600" },
-            { "title": "700 WPM", "value": "700" }
+            {
+              "title": "300 WPM",
+              "value": "300"
+            },
+            {
+              "title": "400 WPM (Default)",
+              "value": "400"
+            },
+            {
+              "title": "500 WPM",
+              "value": "500"
+            },
+            {
+              "title": "600 WPM",
+              "value": "600"
+            },
+            {
+              "title": "700 WPM",
+              "value": "700"
+            }
           ]
         }
       ]
@@ -39,7 +56,7 @@
     "@raycast/eslint-config": "^1.0.11",
     "@types/node": "22.13.14",
     "@types/react": "19.0.10",
-    "eslint": "^9.23.0",
+    "eslint": "^8.57.1",
     "prettier": "^3.5.3",
     "typescript": "^5.8.2"
   },
