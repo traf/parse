@@ -185,7 +185,7 @@ export default function Command() {
 
     // Use theme-appropriate colors for better contrast
     const textColor = isDark ? "#e5e5e5" : "#1a1a1a";
-    const barBgColor = isDark ? "#333" : "#d1d1d1";
+    const barBgColor = isDark ? "#333" : "#a3a3a3";
 
     const chars = word
       .split("")
