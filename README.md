@@ -1,6 +1,6 @@
 ![Parse Banner](./assets/banner.png)
 
-## Parse is a simple Raycast extension that lets you read any selected at the speed of thought (almost)
+## Parse is a Raycast extension that lets you speed read any copied text using RSVP (Rapid Serial Visual Presentation) technique.
 
 
 ## Features
@@ -11,6 +11,8 @@
 - **Progress Tracking**: Visual progress bar shows reading position
 - **Customizable Speed**: Adjust reading speed on the fly
 - **Keyboard Controls**: Play/pause with spacebar, navigate with shortcuts
+
+![Parse Banner](./metadata/parse-1.png)
 
 ## How to Use
 
@@ -30,4 +32,4 @@
 ## Notes
 
 - Based on [this tweet from Oliur](https://x.com/UltraLinx/status/2011434505253650868) 
-- Ping [@traf](https://x.com/traf) with any issues/ideas/feedback
+- Ping [@traf](https://x.com/traf) with any ideas/feedback

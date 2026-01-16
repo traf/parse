@@ -16,26 +16,30 @@ interface Preferences {
   wpm: string;
 }
 
+interface ClipboardItem {
+  id: string;
+  text: string;
+  words: string[];
+}
+
+const WPM_OPTIONS = [300, 400, 500, 600, 700];
+const MAX_WORD_LENGTH = 15;
+const CLIPBOARD_OFFSET_LIMIT = 5;
+const MIN_WORD_COUNT = 10;
+const POLL_INTERVAL = 1000;
+
 export default function Command() {
   const preferences = getPreferenceValues<Preferences>();
-  const wpm = parseInt(preferences.wpm) || 400;
+  const defaultWpm = parseInt(preferences.wpm) || 400;
 
-  const [clipboardHistory, setClipboardHistory] = useState<
-    { id: string; text: string; words: string[] }[]
-  >([]);
+  const [clipboardHistory, setClipboardHistory] = useState<ClipboardItem[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [currentWpm, setCurrentWpm] = useState(wpm);
-  const wpmOptions = [300, 400, 500, 600, 700];
+  const [currentWpm, setCurrentWpm] = useState(defaultWpm);
 
-  // Load saved WPM on mount
-  useEffect(() => {
-    LocalStorage.getItem<string>("savedWpm").then((saved) => {
-      if (saved) setCurrentWpm(parseInt(saved));
-    });
-  }, []);
+  const [deletedTexts, setDeletedTexts] = useState<Set<string> | null>(null);
 
   const selectedItem = clipboardHistory.find((item) => item.id === selectedId);
   const words = selectedItem?.words || [];
@@ -44,43 +48,52 @@ export default function Command() {
   const wordsRef = useRef(words);
   wordsRef.current = words;
 
+  // Load saved preferences on mount
   useEffect(() => {
+    async function load() {
+      const savedWpm = await LocalStorage.getItem<string>("savedWpm");
+      if (savedWpm) setCurrentWpm(parseInt(savedWpm));
+
+      const savedDeleted = await LocalStorage.getItem<string>("deletedTexts");
+      setDeletedTexts(savedDeleted ? new Set(JSON.parse(savedDeleted)) : new Set());
+    }
+    load();
+  }, []);
+
+  // Poll clipboard history
+  useEffect(() => {
+    if (deletedTexts === null) return;
+    const deleted = deletedTexts;
+
     async function loadClipboardHistory() {
       try {
-        // Load deleted IDs from storage
-        const deletedJson = await LocalStorage.getItem<string>("deletedTexts");
-        const deletedTexts: string[] = deletedJson
-          ? JSON.parse(deletedJson)
-          : [];
+        const items: ClipboardItem[] = [];
 
-        const items: { id: string; text: string; words: string[] }[] = [];
-
-        for (let offset = 0; offset <= 5; offset++) {
+        for (let offset = 0; offset <= CLIPBOARD_OFFSET_LIMIT; offset++) {
           const clipboardText = await Clipboard.readText({ offset });
-          if (clipboardText && clipboardText.trim()) {
+
+          if (clipboardText?.trim()) {
             const text = clipboardText.trim();
-            if (
-              !items.some((item) => item.text === text) &&
-              !deletedTexts.includes(text)
-            ) {
+            const itemId = `${offset}-${text}`;
+
+            if (!items.some((item) => item.text === text) && !deleted.has(itemId)) {
               const wordArray = text.split(/\s+/).filter((w) => w.length > 0);
-              if (wordArray.length >= 10) {
-                items.push({
-                  id: `${offset}-${Date.now()}`,
-                  text,
-                  words: wordArray,
-                });
+
+              if (wordArray.length >= MIN_WORD_COUNT) {
+                items.push({ id: itemId, text, words: wordArray });
               }
             }
           }
         }
 
-        if (items.length > 0) {
-          setClipboardHistory(items);
+        setClipboardHistory(items);
+
+        if (items.length > 0 && (!selectedId || !items.some((item) => item.id === selectedId))) {
           setSelectedId(items[0].id);
           setCurrentIndex(0);
           setIsPlaying(true);
         }
+
         setIsLoading(false);
       } catch (error) {
         setIsLoading(false);
@@ -91,16 +104,17 @@ export default function Command() {
         });
       }
     }
-    loadClipboardHistory();
-  }, []);
 
+    loadClipboardHistory();
+    const interval = setInterval(loadClipboardHistory, POLL_INTERVAL);
+    return () => clearInterval(interval);
+  }, [selectedId, deletedTexts]);
+
+  // Word playback timer
   useEffect(() => {
     const currentWords = wordsRef.current;
-    if (
-      !isPlaying ||
-      currentWords.length === 0 ||
-      currentIndex >= currentWords.length
-    ) {
+
+    if (!isPlaying || currentWords.length === 0 || currentIndex >= currentWords.length) {
       return;
     }
 
@@ -134,20 +148,15 @@ export default function Command() {
     }
   }, [currentIndex, words.length]);
 
-  const maxWordLength = 15;
-
   const getCurrentChunk = () => {
     if (words.length === 0) return "";
-    let word = words[currentIndex] || "";
-    if (word.length > maxWordLength) return "—";
+    const word = words[currentIndex] || "";
+    if (word.length > MAX_WORD_LENGTH) return "—";
     if (/[[\]()!#*`]/.test(word)) return "—";
     return word;
   };
 
-  // Get middle character index
-  const getOrpIndex = (word: string) => {
-    return Math.floor(word.length / 2);
-  };
+  const getOrpIndex = (word: string) => Math.floor(word.length / 2);
 
   const createWordSvg = (word: string, orpIdx: number) => {
     const fontSize = 56;
@@ -156,27 +165,20 @@ export default function Command() {
     const svgHeight = 400;
     const centerY = svgHeight / 2 + 50;
     const centerX = fixedWidth / 2;
-
-    // Position word so ORP char is at center
     const orpOffset = orpIdx * charWidth + charWidth / 2;
     const startX = centerX - orpOffset;
 
     const chars = word
       .split("")
       .map((char, i) => {
-        const escaped = char
-          .replace(/&/g, "&amp;")
-          .replace(/</g, "&lt;")
-          .replace(/>/g, "&gt;");
+        const escaped = char.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
         const fill = i === orpIdx ? "#ef4444" : "#e5e5e5";
         const x = startX + i * charWidth;
         return `<text x="${x}" y="${centerY}" fill="${fill}" font-size="${fontSize}" font-weight="500" font-family="SF Mono, Menlo, Monaco, monospace" dominant-baseline="central">${escaped}</text>`;
       })
       .join("");
 
-    // Progress bar - fixed position, only fill changes
-    const progress =
-      words.length > 1 ? (currentIndex / (words.length - 1)) * 100 : 0;
+    const progress = words.length > 1 ? (currentIndex / (words.length - 1)) * 100 : 0;
     const barWidth = 200;
     const barHeight = 2;
     const barX = (fixedWidth - barWidth) / 2;
@@ -185,7 +187,6 @@ export default function Command() {
     const progressBar = `<rect x="${barX}" y="${barY}" width="${barWidth}" height="${barHeight}" fill="#333" rx="1"/><rect x="${barX}" y="${barY}" width="${filledWidth}" height="${barHeight}" fill="#ef4444" rx="1"/>`;
 
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${fixedWidth}" height="${svgHeight}" viewBox="0 0 ${fixedWidth} ${svgHeight}">${chars}${progressBar}</svg>`;
-
     return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
   };
 
@@ -195,7 +196,6 @@ export default function Command() {
 
     const orpIdx = getOrpIndex(word);
     const svgUrl = createWordSvg(word, orpIdx);
-
     return `![${word}](${svgUrl})`;
   };
 
@@ -205,50 +205,52 @@ export default function Command() {
     setIsPlaying(true);
   };
 
+  const handleDelete = async (item: ClipboardItem) => {
+    const newDeleted = new Set(deletedTexts || []);
+    newDeleted.add(item.id);
+    setDeletedTexts(newDeleted);
+    await LocalStorage.setItem("deletedTexts", JSON.stringify(Array.from(newDeleted)));
+    
+    setClipboardHistory((prev) => {
+      const remaining = prev.filter((i) => i.id !== item.id);
+      if (selectedId === item.id) {
+        setSelectedId(remaining.length > 0 ? remaining[0].id : null);
+      }
+      return remaining;
+    });
+
+    showToast({ style: Toast.Style.Success, title: "Deleted" });
+  };
+
+  const handleWpmChange = (newValue: string) => {
+    const newWpm = parseInt(newValue);
+    setCurrentWpm(newWpm);
+    LocalStorage.setItem("savedWpm", newValue);
+  };
+
   return (
     <List
-      isLoading={isLoading}
+      isLoading={isLoading || deletedTexts === null}
       isShowingDetail
       searchBarPlaceholder="Search clipboard history..."
       onSelectionChange={(id) => id && selectItem(id)}
       searchBarAccessory={
-        <List.Dropdown
-          tooltip="Select Speed"
-          value={String(currentWpm)}
-          onChange={(newValue) => {
-            const newWpm = parseInt(newValue);
-            setCurrentWpm(newWpm);
-            LocalStorage.setItem("savedWpm", newValue);
-          }}
-        >
-          {wpmOptions.map((speed) => (
-            <List.Dropdown.Item
-              key={speed}
-              title={`${speed} WPM`}
-              value={String(speed)}
-            />
+        <List.Dropdown tooltip="Select Speed" value={String(currentWpm)} onChange={handleWpmChange}>
+          {WPM_OPTIONS.map((speed) => (
+            <List.Dropdown.Item key={speed} title={`${speed} WPM`} value={String(speed)} />
           ))}
         </List.Dropdown>
       }
     >
       {clipboardHistory.length === 0 ? (
-        <List.EmptyView
-          title="Nothing to Parse"
-          description="Copy some text first, then open Parse."
-        />
+        <List.EmptyView title="Nothing to Parse" description="Copy some text first, then open Parse." />
       ) : (
         clipboardHistory.map((item) => (
           <List.Item
             key={item.id}
             id={item.id}
-            title={
-              item.text.slice(0, 60) + (item.text.length > 60 ? "..." : "")
-            }
-            detail={
-              item.id === selectedId ? (
-                <List.Item.Detail markdown={getMarkdown()} />
-              ) : undefined
-            }
+            title={item.text.slice(0, 60) + (item.text.length > 60 ? "..." : "")}
+            detail={item.id === selectedId ? <List.Item.Detail markdown={getMarkdown()} /> : undefined}
             actions={
               <ActionPanel>
                 <Action
@@ -258,7 +260,7 @@ export default function Command() {
                   onAction={togglePlayPause}
                 />
                 <Action.CopyToClipboard
-                  title="Copy"
+                  title="Copy to Clipboard"
                   content={item.text}
                   shortcut={{ modifiers: ["cmd"], key: "c" }}
                 />
@@ -267,34 +269,7 @@ export default function Command() {
                   icon={{ source: Icon.Trash, tintColor: Color.Red }}
                   style={Action.Style.Destructive}
                   shortcut={{ modifiers: ["cmd"], key: "d" }}
-                  onAction={async () => {
-                    const deletedJson =
-                      await LocalStorage.getItem<string>("deletedTexts");
-                    const deletedTexts: string[] = deletedJson
-                      ? JSON.parse(deletedJson)
-                      : [];
-                    deletedTexts.push(item.text);
-                    await LocalStorage.setItem(
-                      "deletedTexts",
-                      JSON.stringify(deletedTexts),
-                    );
-
-                    setClipboardHistory((prev) =>
-                      prev.filter((i) => i.id !== item.id),
-                    );
-                    if (selectedId === item.id) {
-                      const remaining = clipboardHistory.filter(
-                        (i) => i.id !== item.id,
-                      );
-                      setSelectedId(
-                        remaining.length > 0 ? remaining[0].id : null,
-                      );
-                    }
-                    await showToast({
-                      style: Toast.Style.Success,
-                      title: "Deleted",
-                    });
-                  }}
+                  onAction={() => handleDelete(item)}
                 />
                 <ActionPanel.Section>
                   <Action.OpenInBrowser

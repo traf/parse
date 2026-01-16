@@ -1,7 +1,7 @@
 {
   "name": "parse",
-  "title": "Parse",
-  "description": "Read at the speed of thought.",
+  "title": "Parse - Speed Reader",
+  "description": "Speed read copied text one word at a time.",
   "icon": "extension-icon.png",
   "author": "traf",
   "categories": ["Productivity"],
@@ -10,7 +10,7 @@
     { 
       "name": "index",
       "title": "Parse Text",
-      "description": "Read at the speed of thought.",
+      "description": "Speed read copied text one word at a time.",
       "mode": "view",
       "preferences": [
         {
