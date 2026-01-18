@@ -210,7 +210,7 @@ export default function Command() {
     const progressBar = `<rect x="${barX}" y="${barY}" width="${barWidth}" height="${barHeight}" fill="${barBgColor}" rx="1"/><rect x="${barX}" y="${barY}" width="${filledWidth}" height="${barHeight}" fill="#ef4444" rx="1"/>`;
 
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${fixedWidth}" height="${svgHeight}" viewBox="0 0 ${fixedWidth} ${svgHeight}">${chars}${progressBar}</svg>`;
-    return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+    return `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
   };
 
   const getMarkdown = () => {
@@ -253,6 +253,26 @@ export default function Command() {
     setCurrentWpm(newWpm);
     LocalStorage.setItem("savedWpm", newValue);
   };
+
+  const increaseWpm = useCallback(() => {
+    const currentIdx = WPM_OPTIONS.indexOf(currentWpm);
+    if (currentIdx < WPM_OPTIONS.length - 1) {
+      const newWpm = WPM_OPTIONS[currentIdx + 1];
+      setCurrentWpm(newWpm);
+      LocalStorage.setItem("savedWpm", String(newWpm));
+      showToast({ style: Toast.Style.Success, title: `${newWpm} WPM` });
+    }
+  }, [currentWpm]);
+
+  const decreaseWpm = useCallback(() => {
+    const currentIdx = WPM_OPTIONS.indexOf(currentWpm);
+    if (currentIdx > 0) {
+      const newWpm = WPM_OPTIONS[currentIdx - 1];
+      setCurrentWpm(newWpm);
+      LocalStorage.setItem("savedWpm", String(newWpm));
+      showToast({ style: Toast.Style.Success, title: `${newWpm} WPM` });
+    }
+  }, [currentWpm]);
 
   return (
     <List
@@ -301,6 +321,18 @@ export default function Command() {
                   icon={isPlaying ? Icon.Pause : Icon.Play}
                   shortcut={{ modifiers: [], key: "space" }}
                   onAction={togglePlayPause}
+                />
+                <Action
+                  title="Increase Speed"
+                  icon={Icon.Plus}
+                  shortcut={{ modifiers: [], key: "arrowRight" }}
+                  onAction={increaseWpm}
+                />
+                <Action
+                  title="Decrease Speed"
+                  icon={Icon.Minus}
+                  shortcut={{ modifiers: [], key: "arrowLeft" }}
+                  onAction={decreaseWpm}
                 />
                 <Action.CopyToClipboard
                   title="Copy to Clipboard"
