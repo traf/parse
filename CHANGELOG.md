@@ -1,12 +1,16 @@
 # Parse Changelog
 
-## [Fixes] - {PR_MERGE_DATE}
+## [v1.1] - {PR_MERGE_DATE}
 
 - Fix URI malformed error when parsing text with special characters
 - Improve light mode contrast for better readability
 - Add left/right arrow key shortcuts to adjust speed
+- Added 800 & 900wpm options
+- Fixed infinite loop issue caused by `useEffect` + `setState`
+- Added Windows support
+- Updated dependencies
 
-## [Initial Version] - 2025-01-18
+## [v1.0] - 2026-01-16
 
 - Speed read text at 300-700 WPM using RSVP technique
 - Automatic clipboard integration with history

@@ -11,6 +11,7 @@ import {
   Color,
   LocalStorage,
   environment,
+  Keyboard,
 } from "@raycast/api";
 
 interface Preferences {
@@ -23,7 +24,7 @@ interface ClipboardItem {
   words: string[];
 }
 
-const WPM_OPTIONS = [300, 400, 500, 600, 700];
+const WPM_OPTIONS = [300, 400, 500, 600, 700, 800, 900];
 const MAX_WORD_LENGTH = 15;
 const CLIPBOARD_OFFSET_LIMIT = 5;
 const MIN_WORD_COUNT = 10;
@@ -56,9 +57,7 @@ export default function Command() {
       if (savedWpm) setCurrentWpm(parseInt(savedWpm));
 
       const savedDeleted = await LocalStorage.getItem<string>("deletedTexts");
-      setDeletedTexts(
-        savedDeleted ? new Set(JSON.parse(savedDeleted)) : new Set(),
-      );
+      setDeletedTexts(savedDeleted ? new Set(JSON.parse(savedDeleted)) : new Set());
     }
     load();
   }, []);
@@ -79,10 +78,7 @@ export default function Command() {
             const text = clipboardText.trim();
             const itemId = `${offset}-${text}`;
 
-            if (
-              !items.some((item) => item.text === text) &&
-              !deleted.has(itemId)
-            ) {
+            if (!items.some((item) => item.text === text) && !deleted.has(itemId)) {
               const wordArray = text.split(/\s+/).filter((w) => w.length > 0);
 
               if (wordArray.length >= MIN_WORD_COUNT) {
@@ -92,12 +88,13 @@ export default function Command() {
           }
         }
 
-        setClipboardHistory(items);
+        setClipboardHistory((prev) => {
+          if (prev.length !== items.length) return items;
+          if (prev.every((p, i) => p.id === items[i]?.id)) return prev;
+          return items;
+        });
 
-        if (
-          items.length > 0 &&
-          (!selectedId || !items.some((item) => item.id === selectedId))
-        ) {
+        if (items.length > 0 && (!selectedId || !items.some((item) => item.id === selectedId))) {
           setSelectedId(items[0].id);
           setCurrentIndex(0);
           setIsPlaying(true);
@@ -123,11 +120,7 @@ export default function Command() {
   useEffect(() => {
     const currentWords = wordsRef.current;
 
-    if (
-      !isPlaying ||
-      currentWords.length === 0 ||
-      currentIndex >= currentWords.length
-    ) {
+    if (!isPlaying || currentWords.length === 0 || currentIndex >= currentWords.length) {
       return;
     }
 
@@ -190,18 +183,14 @@ export default function Command() {
     const chars = word
       .split("")
       .map((char, i) => {
-        const escaped = char
-          .replace(/&/g, "&amp;")
-          .replace(/</g, "&lt;")
-          .replace(/>/g, "&gt;");
+        const escaped = char.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
         const fill = i === orpIdx ? "#ef4444" : textColor;
         const x = startX + i * charWidth;
         return `<text x="${x}" y="${centerY}" fill="${fill}" font-size="${fontSize}" font-weight="500" font-family="SF Mono, Menlo, Monaco, monospace" dominant-baseline="central">${escaped}</text>`;
       })
       .join("");
 
-    const progress =
-      words.length > 1 ? (currentIndex / (words.length - 1)) * 100 : 0;
+    const progress = words.length > 1 ? (currentIndex / (words.length - 1)) * 100 : 0;
     const barWidth = 200;
     const barHeight = 2;
     const barX = (fixedWidth - barWidth) / 2;
@@ -232,10 +221,7 @@ export default function Command() {
     const newDeleted = new Set(deletedTexts || []);
     newDeleted.add(item.id);
     setDeletedTexts(newDeleted);
-    await LocalStorage.setItem(
-      "deletedTexts",
-      JSON.stringify(Array.from(newDeleted)),
-    );
+    await LocalStorage.setItem("deletedTexts", JSON.stringify(Array.from(newDeleted)));
 
     setClipboardHistory((prev) => {
       const remaining = prev.filter((i) => i.id !== item.id);
@@ -281,39 +267,22 @@ export default function Command() {
       searchBarPlaceholder="Search clipboard history..."
       onSelectionChange={(id) => id && selectItem(id)}
       searchBarAccessory={
-        <List.Dropdown
-          tooltip="Select Speed"
-          value={String(currentWpm)}
-          onChange={handleWpmChange}
-        >
+        <List.Dropdown tooltip="Select Speed" value={String(currentWpm)} onChange={handleWpmChange}>
           {WPM_OPTIONS.map((speed) => (
-            <List.Dropdown.Item
-              key={speed}
-              title={`${speed} WPM`}
-              value={String(speed)}
-            />
+            <List.Dropdown.Item key={speed} title={`${speed} WPM`} value={String(speed)} />
           ))}
         </List.Dropdown>
       }
     >
       {clipboardHistory.length === 0 ? (
-        <List.EmptyView
-          title="Nothing to Parse"
-          description="Copy some text first, then open Parse."
-        />
+        <List.EmptyView title="Nothing to Parse" description="Copy some text first, then open Parse." />
       ) : (
         clipboardHistory.map((item) => (
           <List.Item
             key={item.id}
             id={item.id}
-            title={
-              item.text.slice(0, 60) + (item.text.length > 60 ? "..." : "")
-            }
-            detail={
-              item.id === selectedId ? (
-                <List.Item.Detail markdown={getMarkdown()} />
-              ) : undefined
-            }
+            title={item.text.slice(0, 60) + (item.text.length > 60 ? "..." : "")}
+            detail={item.id === selectedId ? <List.Item.Detail markdown={getMarkdown()} /> : undefined}
             actions={
               <ActionPanel>
                 <Action
@@ -337,13 +306,13 @@ export default function Command() {
                 <Action.CopyToClipboard
                   title="Copy to Clipboard"
                   content={item.text}
-                  shortcut={{ modifiers: ["cmd"], key: "c" }}
+                  shortcut={Keyboard.Shortcut.Common.Copy}
                 />
                 <Action
                   title="Delete"
                   icon={{ source: Icon.Trash, tintColor: Color.Red }}
                   style={Action.Style.Destructive}
-                  shortcut={{ modifiers: ["cmd"], key: "d" }}
+                  shortcut={Keyboard.Shortcut.Common.Remove}
                   onAction={() => handleDelete(item)}
                 />
                 <ActionPanel.Section>
@@ -351,13 +320,12 @@ export default function Command() {
                     title="View on GitHub"
                     url="https://github.com/traf/parse"
                     icon={Icon.ArrowNe}
-                    shortcut={{ modifiers: ["cmd"], key: "g" }}
                   />
                   <Action.OpenInBrowser
+                    // eslint-disable-next-line @raycast/prefer-title-case
                     title="Follow @traf"
                     url="https://x.com/traf"
                     icon={Icon.ArrowNe}
-                    shortcut={{ modifiers: ["cmd"], key: "x" }}
                   />
                 </ActionPanel.Section>
               </ActionPanel>
